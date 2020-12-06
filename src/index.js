@@ -125,10 +125,9 @@ window.addEventListener('load', () => {
     	display('ui-createtx', false);
 
         const client = await TONClient.create({
-            servers: ['net.ton.dev']
+            servers: ['main.ton.dev']
         });
-        // exhaust indicate color target want model cry garbage range write light flee - 82fc180e86668f31e7a11aa64bb0fb68129979abd5a4f9ab8420179d3c864d2f
-        // fire gaze canyon slot maid science twenty shuffle arch episode wet rude - ab81ebc2833c1d58524baac1b72ca731d62cc8bb4abccc07a15826e03e336bf6
+
         const loginBtn = document.getElementById('login');
         const logoutBtn = document.getElementById('logout');
         const addressInput = document.getElementById('address');
@@ -137,8 +136,6 @@ window.addEventListener('load', () => {
         const signtxBtn = document.getElementById('signtx');
         const createtxBtn = document.getElementById('createtx');
         const submittxBtn = document.getElementById('submittx');
-
-        addressInput.value = '0:fb47c850a5d38287d09ce4f7c29e41dcceb78b27bef10f47c0eed62a6bd67e89'
         
         loginBtn.addEventListener('click', async () => {
         	const phrase = document.getElementById('phrase').value;
