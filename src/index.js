@@ -169,7 +169,8 @@ window.addEventListener('load', () => {
 
         	let transactions = await getTransactions(client, addressInput.value)
             let custodians = await getCustodians(client, addressInput.value)
-            // {txID: {custodian: signed}}
+            
+            // {txID: {pubkey: isSigned}}
             let signData = Object.fromEntries(transactions.map(tx => [
                 tx.id, Object.fromEntries(custodians.map(cust => [
                     cust.pubkey, false]))]))
@@ -182,10 +183,9 @@ window.addEventListener('load', () => {
 
         	for (let tx of transactions) {
         		let amount = parseInt(tx.value, 16) / 1000000000
-                let confMask = tx.confirmationsMask
+                let confMask = parseInt(tx.confirmationsMask)
                 for (let cust of custodians) {
-                    let idx = parseInt(cust.index, 16)
-                    signData[tx.id][cust.pubkey] = Boolean((confMask & (2 ** idx)) >> idx)
+                    signData[tx.id][cust.pubkey] = Boolean((confMask & (2 ** cust.index)) >> cust.index)
                 }
                 let 
                     signsRecv = parseInt(tx.signsReceived, 16), 
