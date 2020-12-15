@@ -172,7 +172,8 @@ window.addEventListener('load', () => {
         	addHTML('resp-listtx', "------ TRANSACTIONS ------");
         	for (let tx of transactions) {
         		let amount = parseInt(tx.value, 16) / 1000000000
-        		addHTML('resp-listtx', `${tx.id}: ${amount} 💎 -> ${tx.dest}`)
+                let reqSigs = (await getCustodians(client, addressInput.value)).length;
+        		addHTML('resp-listtx', `${tx.id}: ${amount} 💎 -> ${tx.dest} (${parseInt(tx.signsReceived, 16)}/${parseInt(tx.signsRequired, 16)})`)
         	}
         	display('content-signtx', true);
         })
