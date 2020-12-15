@@ -1,5 +1,6 @@
-import { TONClient, setWasmOptions } from 'ton-client-web-js';
-const msigAbi = require('./SafeMultisigWallet.abi.json');
+import { TONClient, setWasmOptions } from 'ton-client-web-js'
+import knownCustodians from './custodians.json'
+const msigAbi = require('./SafeMultisigWallet.abi.json')
 
 // Storage
 
@@ -11,37 +12,37 @@ function getKeys() {
 }
 
 function storeKeys(kp) {
-	localStorage.setItem('msig-tool-pubkey', kp.public);
-	localStorage.setItem('msig-tool-privkey', kp.secret);
+	localStorage.setItem('msig-tool-pubkey', kp.public)
+	localStorage.setItem('msig-tool-privkey', kp.secret)
 }
 
 function clearKeys() {
-	localStorage.remove('msig-tool-pubkey');
-	localStorage.remove('msig-tool-privkey');
+	localStorage.remove('msig-tool-pubkey')
+	localStorage.remove('msig-tool-privkey')
 }
 
 // DOM
 
 function clearHTML(elId) {
-	let el = document.getElementById(elId);
-	el.innerHTML = "";
+	let el = document.getElementById(elId)
+	el.innerHTML = ""
 }
 
 function addHTML(elId, message) {
 	let el = document.getElementById(elId);
-    el.insertAdjacentHTML("beforeend", `<p>${message}</p>`);
+    el.insertAdjacentHTML("beforeend", `<p>${message}</p>`)
 }
 
 function display(elId, display) {
 	let el = document.getElementById(elId);
-	el.style.display = display ? 'block' : 'none';
+	el.style.display = display ? 'block' : 'none'
 }
 
 function showLoginInfo() {
 	clearHTML('logged-in')
-	let kp = getKeys();
+	let kp = getKeys()
 	if (!kp) {
-		addHTML('logged-in', 'Not Logged In');
+		addHTML('logged-in', 'Not Logged In')
 	}
 	else {
 		addHTML('logged-in', `Logged in as ${kp.public}.`)
@@ -51,16 +52,16 @@ function showLoginInfo() {
 // TON OS
 
 async function keyPairFromPhrase(client, phrase) {
-	const HD_PATH = "m/44'/396'/0'/0/0";
-	const SEED_PHRASE_WORD_COUNT = 12;
-	const SEED_PHRASE_DICTIONARY_ENGLISH = 1;
+	const HD_PATH = "m/44'/396'/0'/0/0"
+	const SEED_PHRASE_WORD_COUNT = 12
+	const SEED_PHRASE_DICTIONARY_ENGLISH = 1
 	let keyPair = await client.crypto.mnemonicDeriveSignKeys({
             dictionary: SEED_PHRASE_DICTIONARY_ENGLISH,
             wordCount: SEED_PHRASE_WORD_COUNT,
             phrase: phrase,
             path: HD_PATH
-        });
-	return keyPair;
+        })
+	return keyPair
 };
 
 async function getCustodians(client, address) {
@@ -69,8 +70,8 @@ async function getCustodians(client, address) {
 		    abi: msigAbi,
 		    functionName: 'getCustodians',
 		    input: {}
-		});
-	return response.output.custodians
+		})
+	return response.output.custodians.map(el => {return {...el, index: parseInt(el.index, 16)}}).sort((e1, e2) => e1.index - e2.index)
 }
 
 async function getTransactions(client, address) {
@@ -97,7 +98,6 @@ async function submitTransaction(client, addressFrom, addressTo, value, kp) {
 		},
 		keyPair: kp
 	})
-	console.log(response);
 	return response.output.transId
 }
 
@@ -111,7 +111,6 @@ async function confirmTransaction(client, addressFrom, txid, kp) {
 		},
 		keyPair: kp
 	});
-	console.log(response);
 	return response
 }
 
@@ -119,81 +118,108 @@ async function confirmTransaction(client, addressFrom, txid, kp) {
 
 window.addEventListener('load', () => {
     (async () => {
-    	showLoginInfo();
-    	display('resp-custodians', false);
-    	display('content-signtx', false);
-    	display('ui-createtx', false);
+    	showLoginInfo()
+    	display('resp-custodians', false)
+    	display('content-signtx', false)
+    	display('ui-createtx', false)
 
         const client = await TONClient.create({
             servers: ['main.ton.dev']
-        });
+        })
 
-        const loginBtn = document.getElementById('login');
-        const logoutBtn = document.getElementById('logout');
-        const addressInput = document.getElementById('address');
-        const custodiansBtn = document.getElementById('custodians');
-        const listtxBtn = document.getElementById('listtx');
-        const signtxBtn = document.getElementById('signtx');
-        const createtxBtn = document.getElementById('createtx');
-        const submittxBtn = document.getElementById('submittx');
+        const loginBtn = document.getElementById('login')
+        const logoutBtn = document.getElementById('logout')
+        const addressInput = document.getElementById('address')
+        const custodiansBtn = document.getElementById('custodians')
+        const listtxBtn = document.getElementById('listtx')
+        const signtxBtn = document.getElementById('signtx')
+        const createtxBtn = document.getElementById('createtx')
+        const submittxBtn = document.getElementById('submittx')
         
         loginBtn.addEventListener('click', async () => {
-        	const phrase = document.getElementById('phrase').value;
-        	let kp = await keyPairFromPhrase(client, phrase);
-        	storeKeys(kp);
-        	showLoginInfo();
+        	const phrase = document.getElementById('phrase').value
+        	let kp = await keyPairFromPhrase(client, phrase)
+        	storeKeys(kp)
+        	showLoginInfo()
         });
 
         logoutBtn.addEventListener('click', () => {
-        	clearKeys();
-        	showLoginInfo();
+        	clearKeys()
+        	showLoginInfo()
         })
 
         custodiansBtn.addEventListener('click', async () => {
-	    	display('content-signtx', false);
-	    	display('ui-createtx', false);
+	    	display('content-signtx', false)
+	    	display('ui-createtx', false)
 
-        	let custodians = await getCustodians(client, addressInput.value);
-        	clearHTML('resp-custodians');
-        	addHTML('resp-custodians', "------ CUSTODIAN PUB KEYS ------");
+        	let custodians = await getCustodians(client, addressInput.value)
+            console.log(custodians)
+
+        	clearHTML('resp-custodians')
+        	addHTML('resp-custodians', "------ CUSTODIAN PUB KEYS ------")
         	for (let cust of custodians) {
-        		addHTML('resp-custodians', cust.pubkey);
-        	};
-        	display('resp-custodians', true);
+        		addHTML('resp-custodians', cust.pubkey)
+        	}
+        	display('resp-custodians', true)
         })
 
         listtxBtn.addEventListener('click', async () => {
-        	display('resp-custodians', false);
-    		display('ui-createtx', false);
+        	display('resp-custodians', false)
+    		display('ui-createtx', false)
 
-        	let transactions = await getTransactions(client, addressInput.value);
-        	console.log(transactions);
-        	clearHTML('resp-listtx');
-        	addHTML('resp-listtx', "------ TRANSACTIONS ------");
+        	let transactions = await getTransactions(client, addressInput.value)
+            let custodians = await getCustodians(client, addressInput.value)
+            // {txID: {custodian: signed}}
+            let signData = Object.fromEntries(transactions.map(tx => [
+                tx.id, Object.fromEntries(custodians.map(cust => [
+                    cust.pubkey, false]))]))
+        	
+            console.log(transactions)
+            console.log(custodians)
+
+        	clearHTML('resp-listtx')
+        	addHTML('resp-listtx', "------ TRANSACTIONS ------")
+
         	for (let tx of transactions) {
         		let amount = parseInt(tx.value, 16) / 1000000000
-                let reqSigs = (await getCustodians(client, addressInput.value)).length;
-        		addHTML('resp-listtx', `${tx.id}: ${amount} 💎 -> ${tx.dest} (${parseInt(tx.signsReceived, 16)}/${parseInt(tx.signsRequired, 16)})`)
+                let confMask = tx.confirmationsMask
+                for (let cust of custodians) {
+                    let idx = parseInt(cust.index, 16)
+                    signData[tx.id][cust.pubkey] = Boolean((confMask & (2 ** idx)) >> idx)
+                }
+                let 
+                    signsRecv = parseInt(tx.signsReceived, 16), 
+                    signsReq = parseInt(tx.signsRequired, 16)
+
+                // 0x5fd8c8fbd3089f81: 54280 💎 -> 0:8e972280ad5c693387ea18c88017006e1858c1bc99173e83926e8fae5392fbb7 (6/7)
+        		addHTML('resp-listtx', `${tx.id}: ${amount} 💎 -> ${tx.dest} (${signsRecv}/${signsReq})`)
+
+                // ✍️ 0xc1bd606a3eb63c41eca20eef547e7e5ffd91aa92f025542b44e3192af91cba5d
+                // ⏳ 0xf07a7cb924c7420520d0d98afad87d9b5e1765920fda698c22da6d0cd3354b9
+                addHTML('resp-listtx', custodians.map(
+                    cust => (signData[tx.id][cust.pubkey] ? '✍️' : '⏳') + '   ' + 
+                    `${(!knownCustodians.hasOwnProperty(cust.pubkey)) ? cust.pubkey : `<a href="${knownCustodians[cust.pubkey]}">` + cust.pubkey + '</a>'}<br>`)
+                .join(''))
         	}
-        	display('content-signtx', true);
+        	display('content-signtx', true)
         })
 
         signtxBtn.addEventListener('click', async () => {
-        	let txid = document.getElementById('txid').value;
-        	let resp = await confirmTransaction(client, addressInput.value, txid, getKeys());
+        	let txid = document.getElementById('txid').value
+        	let resp = await confirmTransaction(client, addressInput.value, txid, getKeys())
         })
 
         createtxBtn.addEventListener('click', () => {
-        	display('resp-custodians', false);
-    		display('content-signtx', false);
-        	display('ui-createtx', true);
+        	display('resp-custodians', false)
+    		display('content-signtx', false)
+        	display('ui-createtx', true)
         })
 
         submittxBtn.addEventListener('click', async () => {
         	let amount = Number(document.getElementById('amount').value) * 1000000000
         	let addressTo = document.getElementById('addressTo').value
-        	let tid = await submitTransaction(client, addressInput.value, addressTo, amount, getKeys());
+        	let tid = await submitTransaction(client, addressInput.value, addressTo, amount, getKeys())
         	addHTML('ui-createtx', `Tx ID: ${tid}`)
         })
-    })();
-});
+    })()
+})
