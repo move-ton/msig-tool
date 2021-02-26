@@ -1,6 +1,6 @@
 import { TONClient, setWasmOptions } from 'ton-client-web-js'
 import knownCustodians from './custodians.json'
-const msigAbi = require('./SafeMultisigWallet.abi.json')
+const msigAbi = require('./SetcodeMultisigWallet.abi.json')
 
 // Storage
 
@@ -114,6 +114,18 @@ async function confirmTransaction(client, addressFrom, txid, kp) {
 	return response
 }
 
+async function confirmUpdate(client, addressFrom, updid, kp) {
+    const response = await client.contracts.run({
+        address: addressFrom,
+        abi: msigAbi,
+        functionName: 'confirmUpdate',
+        input: {
+            updateId: txid
+        },
+        keyPair: kp
+    });
+    return response
+}
 // main
 
 window.addEventListener('load', () => {
@@ -122,6 +134,7 @@ window.addEventListener('load', () => {
     	display('resp-custodians', false)
     	display('content-signtx', false)
     	display('ui-createtx', false)
+        display('ui-confirmupd', false)
 
         const client = await TONClient.create({
             servers: ['main.ton.dev']
@@ -135,6 +148,9 @@ window.addEventListener('load', () => {
         const signtxBtn = document.getElementById('signtx')
         const createtxBtn = document.getElementById('createtx')
         const submittxBtn = document.getElementById('submittx')
+
+        const confirmUpdBtn = document.getElementById('confirmupd')
+        const signUpdBtn = document.getElementById('signupd')
         
         loginBtn.addEventListener('click', async () => {
         	const phrase = document.getElementById('phrase').value
@@ -151,6 +167,7 @@ window.addEventListener('load', () => {
         custodiansBtn.addEventListener('click', async () => {
 	    	display('content-signtx', false)
 	    	display('ui-createtx', false)
+            display('ui-confirmupd', false)
 
         	let custodians = await getCustodians(client, addressInput.value)
             console.log(custodians)
@@ -166,6 +183,7 @@ window.addEventListener('load', () => {
         listtxBtn.addEventListener('click', async () => {
         	display('resp-custodians', false)
     		display('ui-createtx', false)
+            display('ui-confirmupd', false)
 
         	let transactions = await getTransactions(client, addressInput.value)
             let custodians = await getCustodians(client, addressInput.value)
@@ -213,6 +231,14 @@ window.addEventListener('load', () => {
         	display('resp-custodians', false)
     		display('content-signtx', false)
         	display('ui-createtx', true)
+            display('ui-confirmupd', false)
+        })
+
+        confirmUpdBtn.addEventListener('click', () => {
+            display('resp-custodians', false)
+            display('content-signtx', false)
+            display('ui-createtx', false)
+            display('ui-confirmupd', true)
         })
 
         submittxBtn.addEventListener('click', async () => {
@@ -220,6 +246,12 @@ window.addEventListener('load', () => {
         	let addressTo = document.getElementById('addressTo').value
         	let tid = await submitTransaction(client, addressInput.value, addressTo, amount, getKeys())
         	addHTML('ui-createtx', `Tx ID: ${tid}`)
+        })
+
+        signUpdBtn.addEventListener('click', async () => {
+            let uid = Number(document.getElementById('updid').value)
+            let tid = await confirmUpdate(client, addressInput.value, uid, getKeys())
+            addHTML('ui-confirmupd', `Upd ID: ${uid}`)
         })
     })()
 })
